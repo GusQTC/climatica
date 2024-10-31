@@ -9,32 +9,33 @@ class DICEModel:
         self.Y = np.zeros(params["time_horizon"])
         self.D = np.zeros(params["time_horizon"])  # Damages
 
-        # Initial values
-        self.K[0] = params["K0"]
-        self.L = params["L0"]
+        # Set initial values based on Brazil-specific parameters
+        self.K[0] = params["K0"]  # Brazil's initial capital stock
+        self.L = params["L0"]      # Brazil's initial labor supply
 
     def production(self, K, L):
-        """ Cobb-Douglas production function """
+        """ Cobb-Douglas production function with Brazil's parameters """
         return self.params["A"] * (K ** self.params["alpha"]) * (L ** (1 - self.params["alpha"]))
 
     def utility(self, C):
-        """ Utility function """
+        """ Utility function with Brazil's parameters """
         return (C ** (1 - self.params["gamma"])) / (1 - self.params["gamma"])
 
     def simulate(self):
         for t in self.time[:-1]:
+            # Calculate Brazil-specific economic output
             self.Y[t] = self.production(self.K[t], self.L)
+            
+            # Calculate damages based on Brazil's carbon intensity
+            self.D[t] = self.params["sigma"] * self.Y[t]
+            self.C[t] = self.Y[t] - self.D[t]  # Consumption after damages
+            self.C[t] = max(self.C[t], 0)      # Avoid negative consumption
 
-            # Calculate damages based on output
-            self.D[t] = self.params["sigma"] * self.Y[t]  
-            self.C[t] = self.Y[t] - self.D[t]  # Consumption
-            self.C[t] = max(self.C[t], 0)  # Avoid negative consumption
-
-            # Update capital for the next period
+            # Update capital stock for the next period
             self.K[t + 1] = (1 - self.params["delta"]) * self.K[t] + self.C[t]
 
-            # Optionally, introduce labor growth (e.g., exponential growth)
-            self.L *= 1.01  # Increase labor supply by 1% each period
+            # Adjust labor growth using Brazil's forecasted growth rate
+            self.L *= 1 + self.params["labor_growth_rate"]
 
     def results(self):
         return {
